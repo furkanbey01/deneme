@@ -9,26 +9,54 @@ import java.util.Calendar
 
 class AlarmScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
-    fun canScheduleExactAlarms(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+
+    fun canScheduleExactAlarms(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+    }
+
     fun scheduleNext(): Long {
-        val triggerAt = calculateNextAlarmTime()
-        val intent = PendingIntent.getBroadcast(context, 58, Intent(context, AlarmReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val showIntent = PendingIntent.getActivity(context, 59, Intent(context, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAt, showIntent), intent)
-        return triggerAt
+        val triggerAtMillis = nextMinute58Millis()
+        alarmManager.setAlarmClock(
+            AlarmManager.AlarmClockInfo(triggerAtMillis, openAppIntent()),
+            alarmIntent(),
+        )
+        return triggerAtMillis
     }
+
     fun cancel() {
-        val intent = PendingIntent.getBroadcast(context, 58, Intent(context, AlarmReceiver::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        alarmManager.cancel(intent)
+        alarmManager.cancel(alarmIntent())
     }
+
+    private fun alarmIntent(): PendingIntent {
+        return PendingIntent.getBroadcast(
+            context,
+            REQUEST_ALARM,
+            Intent(context, AlarmReceiver::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun openAppIntent(): PendingIntent {
+        return PendingIntent.getActivity(
+            context,
+            REQUEST_OPEN_APP,
+            Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     companion object {
-        fun calculateNextAlarmTime(now: Long = System.currentTimeMillis()): Long {
-            val cal = Calendar.getInstance().apply {
-                timeInMillis = now
-                set(Calendar.MINUTE, 58); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-                if (timeInMillis <= now) add(Calendar.HOUR_OF_DAY, 1)
-            }
-            return cal.timeInMillis
+        private const val REQUEST_ALARM = 5800
+        private const val REQUEST_OPEN_APP = 5801
+
+        fun nextMinute58Millis(nowMillis: Long = System.currentTimeMillis()): Long {
+            return Calendar.getInstance().apply {
+                timeInMillis = nowMillis
+                set(Calendar.MINUTE, 58)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+                if (timeInMillis <= nowMillis) add(Calendar.HOUR_OF_DAY, 1)
+            }.timeInMillis
         }
     }
 }

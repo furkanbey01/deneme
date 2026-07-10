@@ -1,10 +1,7 @@
 #!/usr/bin/env sh
-set -e
+set -eu
 if command -v gradle >/dev/null 2>&1; then
   exec gradle "$@"
 fi
-cat >&2 <<'MSG'
-Gradle is not installed on PATH. Install Gradle 8.14.4 or run in GitHub Actions,
-where gradle/actions/setup-gradle installs the requested Gradle version.
-MSG
+echo "Gradle is not installed. GitHub Actions installs Gradle 8.14.4 before running this script." >&2
 exit 127

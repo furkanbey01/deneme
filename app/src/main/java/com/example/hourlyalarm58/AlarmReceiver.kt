@@ -1,24 +1,29 @@
 package com.example.hourlyalarm58
 
-import android.content.*
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
 import android.os.Build
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        NotificationHelper.ensureChannel(context)
         val serviceIntent = Intent(context, AlarmSoundService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(serviceIntent) else context.startService(serviceIntent)
-        val pending = goAsync()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
+        }
+
+        val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            val prefs = AppPreferences(context)
-            prefs.setAlarmEnabled(true)
             val scheduler = AlarmScheduler(context)
             if (scheduler.canScheduleExactAlarms()) {
-                val next = scheduler.scheduleNext()
-                prefs.setNextAlarmTime(next)
+                AppPreferences(context).setNextAlarmTime(scheduler.scheduleNext())
             }
-            pending.finish()
+            pendingResult.finish()
         }
     }
 }
